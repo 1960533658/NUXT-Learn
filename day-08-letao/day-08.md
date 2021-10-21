@@ -230,11 +230,420 @@ select * from category where id > 3 and id < 5;
 select categoryName from category;
 ```
 
+## 后端（Koa）连接数据库连接
+1. 安装数据库连接包
+```shell
+yarn add mysql
+```
+- mySql库文档地址: http://www.nodejs.com/package/mysql
+2. Koa连接mySQL
+
+![复制mysql库文档中的代码于自己的连接数据库文件](day-08.assets/image-20211020205926973.png)
+
+`db/query.js`
+
+
+```js
+var mysql = require('mysql');
+// 连接数据库配置信息
+var pool = mysql.createPool({
+  connectionLimit: 10, // 最大连接数
+  host: 'localhost', // 127.0.0.1 主机域名
+  user: 'root', // 用户名
+  password: 'root', // 密码
+  database: 'letao' // 连接的 表 名称
+});
+// 创建连接
+pool.getConnection(function (err, connection) {
+  if (err) throw err; // not connected! 测试是否连接上数据库
+  
+  // Use the connection 发送sql语句到数据库letao中执行
+  // 执行结果将会咋参数二中返回 -- result
+  connection.query('select 1 + 1 as 结果', function (error, results, fields) {
+    // When done with the connection, release it.  每当拿到数据库返回的数据之后 会释放当前连接
+    connection.release();
+
+    // Handle error after the release. 抛出异常
+    if (error) throw error;
+    // if之后的代码 在没有异常抛出的时候就会执行
+    console.log(results, 'result') // RowDataPacket { '结果': 2 } ] result
+
+  });
+});
+```
+
+**在VScode中测试执行上面js代码**
+
+![测试验证执行是否连接数据库](day-08.assets/image-20211020210108553.png)
+
+注意：
+
+user和password必须正确否则数据库连接不成功，会无法执行此js文件
+
+### 封装query.js
+> 为了让执行的语句可以随意传入,而不是写死的,所以我们要封装 `Pool.getConnectionPool()`
+`db/query.js`
+```js
+/**
+ * 在数据库中执行的sql语句
+ * @param {string} sql 传入sql语句
+ */
+module.exports.query = (sql) => {
+  return new Promise(function (resolve,reject) {
+    pool.getConnection(function (err, connection) {
+      if (err) throw err; // not connected! 测试是否连接上数据库
+
+      // Use the connection 发送sql语句到数据库letao中执行
+      // 执行结果将会咋参数二中返回 -- result
+      connection.query(sql, function (error, results, fields) {
+        // When done with the connection, release it. 每当拿到数据库返回的数据之后 会释放当前连接
+        connection.release();
+        // Handle error after the release. 抛出异常
+        if (error) throw error;
+
+
+        // if之后的代码 在没有异常抛出的时候就会执行
+        resolve(results)
+        // console.log(results, 'result') // RowDataPacket { '结果': 2 } ] result
+
+      });
+    });
+  })
+}
+```
+
+## 分类页
+1. 创建 `routes/category`
+```js
+const router = require('koa-router')();
+const { query } = require('../db/query')
+// 一级分类接口
+router.get("/oneCategory", async (ctx) => {
+  const data = await query("select * from category")
+  console.log(data)
+  ctx.body = data;
+})
+
+module.exports = router
+```
+2. 在`app.js中`注册挂载 一级分类 `category`
+```js
+
+// 加载路由
+const index = require('./routes/index')
+const users = require('./routes/users')
+const category = require('./routes/category')
+
+// routes 注册路由
+app.use(index.routes(), index.allowedMethods())
+app.use(users.routes(), users.allowedMethods())
+app.use(category.routes(), category.allowedMethods())
+
+```
+3. 编写一级分类接口
+4. 再调用该接口是返回一级分类的数据
+
+![返回的数据](day-08.assets/image-20211020214049219.png)
+
+### MVC结构改写一级分类接口
+1. controller/category.js 处理逻辑
+```js
+const { onecategory } = require('../model/category')
+// 一级分类 的 业务处理逻辑
+module.exports.oneCategory = async (ctx) => {
+  const result = await onecategory()
+  
+  ctx.body = {
+    status: 200,
+    oneCategory: result
+  }
+}
+```
+2. module/category.js 提供数据
+```js
+// 分类页面 数据模型
+
+const { query } = require("../db/query");
+
+//#region  一级分类数据层
+module.exports.onecategory = async (ctx) => {
+  return await query('select * from category')
+}
+//#endregion
+
+```
+3. router/category.js 导入controller/category.js 中的方法
+```js
+const router = require('koa-router')();
+const { oneCategory} = require('../controller/category')
+// 一级分类接口
+router.get("/oneCategory", oneCategory)
+
+module.exports = router
+```
+
+## env环境
+> 即使配置了`mysql`(使后端和数据库连接的库) 仍然无法区分开发环境 测试环境 生成环境 因此需要优化
+
+### 设置Node环境变量
+> [dotenv](https://npmjs.com/package/dotenv)
+- 1. 下载方式
+```shell
+npm install dotenv
+# or
+yarn add dotenv
+```
+
+- 2. 创建`db/config.js` 将三种环境抛出
+  - dev: 开发环境 uat测试环境 prd: 生产环境
+```js
+module.exports.config = {
+  dev: {
+    connectionLimit: 10, // 最大连接数
+    host: 'localhost', // 127.0.0.1 主机域名
+    user: 'root', // 用户名
+    password: 'root', // 密码
+    database: 'letao' // 连接的 表 名称
+  },
+  uat: {
+    connectionLimit: 10, // 最大连接数
+    host: 'localhost', // 127.0.0.1 主机域名
+    user: 'root', // 用户名
+    password: 'root', // 密码
+    database: 'letao' // 连接的 表 名称
+  },
+  prs: {
+    connectionLimit: 10, // 最大连接数
+    host: 'localhost', // 127.0.0.1 主机域名
+    user: 'root', // 用户名
+    password: 'root', // 密码
+    database: 'letao' // 连接的 表 名称
+  }
+}
+```
+
+- 3. 在根目录创建 .nev 文件 (Node环境变量配置文件)
+```nev
+DB_ENV=prs
+```
+4. 在query.js种使用Node环境变量 配置mysql数据库的连接
+
+总结: 为了环境切换方便, 我们使用dotenv 实现环境的动态切换
+
+
+## 二级分类接口
+- 前端点击一级分类接口中其中一个数据我们就需要通过id获取二级分类的接口数据
+1. 建表
+```mysql
+CREATE TABLE `brand` (
+	`id` int(11) NOT NULL AUTO_INCREMENT,
+	`brandName` varchar(50) DEFAULT NULL,
+	`categoryId` int(11) DEFAULT NULL,
+	`brandLogo` varchar(200) DEFAULT NULL,
+	`hot` int(4) DEFAULT NULL,
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+select * from brand;
+```
+2. 插入对应数据
+```mysql
+insert into `brand`(`id`,`brandName`,`categoryId`,`brandLogo`, `hot`) values (1,'耐克',1,'/images/brand1.png',1),(2,'阿迪',1,'/images/brand2.png',1),(3,'新百伦',1,'/images/brand3.png',1),(4,'哥伦比亚',1,'/images/brand1.png',0),(5,'匡威',1,'/images/brand5.png',1),(6,'阿萨德1',2,'/images/brand5.png',1),(7,'阿萨德2',2,'/images/brand5.png',1);
+```
+
+3. 新建`controller/twoCategory.js` 业务逻辑控制处理
+```js
+const { onecategory, twoCategory} = require('../model/category')
+// 一级分类 的 业务处理逻辑
+module.exports.oneCategory = async (ctx) => {
+  const result = await onecategory()
+  
+  ctx.body = {
+    status: 200,
+    oneCategory: result
+  }
+}
+
+// 二级分类 业务逻辑处理
+module.exports.twoCategory = async (ctx) => {
+  // 请求参数获取id (你点击了 一级分类商品中具体的一件商品 获取到了id)
+
+  const { id } = ctx.request.query;
+  console.log(id,"id")
+  const result = await twoCategory(id)
+  ctx.body = {
+    status: 200,
+    twoCategory: result
+  }
+}
+```
+4. 新建`module/twoCategory.js` 数据模型管理
+```js
+// 分类页面 数据模型
+
+const { query } = require("../db/query");
+
+//#region  一级分类数据层
+module.exports.onecategory = async () => {
+  return await query('select * from category')
+}
+//#endregion
+
+
+//#region  二级分类数据层
+module.exports.twoCategory = async (id) => {
+  return await query('select * from brand where id = ?', [id])
+}
+//#endregion
+```
+5. `router/category.js` 导入新创建的二级路由`twoCategory`
+```js
+const router = require('koa-router')();
+const { oneCategory, twoCategory} = require('../controller/category')
+// 一级分类接口
+router.get("/oneCategory", oneCategory)
+
+// 二级分类接口
+router.get('/twoCategory', twoCategory)
+module.exports = router
+```
+
+6. 因为带参查询的原因,所以`query.js`中的`sql`参数所携带的命令不全,所以需要一个额外的形参`values`代表`id`值,且在 connext中使用
+```js
+module.exports.query = (sql, values) => {
+  return new Promise(function (resolve,reject) {
+    pool.getConnection(function (err, connection) {
+      if (err) throw err; // not connected! 测试是否连接上数据库
+
+      // Use the connection 发送sql语句到数据库letao中执行
+      // 执行结果将会咋参数二中返回 -- result
+      connection.query(sql,values, function (error, results, fields) {
+        // When done with the connection, release it. 每当拿到数据库返回的数据之后 会释放当前连接
+        connection.release();
+        // Handle error after the release. 抛出异常
+        if (error) throw error;
+
+        // if之后的代码 在没有异常抛出的时候就会执行
+        resolve(results)
+        // console.log(results, 'result') // RowDataPacket { '结果': 2 } ] result
+
+      });
+    });
+  })
+}
+```
+
+## 用户注册
+1. 创建用户表 并且插入测试数据
+```mysql
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) DEFAULT NULL, 
+  `password` varchar(100) DEFAULT NULL,
+  `mobile` char(11) DEFAULT NULL,
+  `smscode` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+
+```
+2. 按照MVC结构创建对应目录和api接口
+`controller/users.js`
+```js
+const { register } = require('../model/users')
+module.exports.register = async (ctx) => {
+  // 读取请求到的参数
+  const { username, password, mobile } = ctx.request.body
+  // 操作 user数据模型
+  const result = await register(username, password, mobile);
+
+  ctx.body = {
+    status: 200,
+    msg: '注册成功',
+    result
+  }
+}
+```
+
+`module/users.js`
+```js
+const { query } = require('../db/query')
+module.exports.register = async (username, password, mobile) => {
+  return  await query(`insert into user (username, password, mobile)
+  values ("${username}","${password}","${mobile}")`)
+}
+```
+3. postMan(接口测试软件) 测试接口
+[postMan使用方法:CSND教程](https://blog.csdn.net/fxbin123/article/details/80428216)
+
+![image-20211021202827850](day-08.assets/image-20211021202827850.png)
+
+> 总结
+
+1. post请求 会将请求参数放到请求报文中, get请求是把请求放到url地址栏中 post请求比get请求更加安全
+
+2. post请求可以传输的数据量>get请求
+
+3. post请求参数的获取 `ctx.request.body`
+4. post请求参数的获取 `ctx.request.query`
+
+## 服务器端表单校验(joi)
+[joi文档库下载](http://www.npmjs.com/package/joi)
+[joi官方文档教程](https://joi.dev/api/)
+[手机号校验正则地址](http://learnku.com/articles/31543)
+
+1. 安装joi表单校验
+```shell
+yarn add joi
+# or
+npm i joi
+```
+2.在数据提交之前进行表单验证 否则返回异常 return 终止代码后续执行
+`controller/users.js`
+```js
+const { register } = require('../model/users')
+// 引入joi
+const Joi = require('joi')
+module.exports.register = async (ctx) => {
+  // 读取请求到的参数
+  const { username, password, mobile } = ctx.request.body
+  
+  //#region  参数是否合法 不合法返回错误信息 并阻止🚫后续代码运行
+  const schema = Joi.object({
+    username: Joi.string().min(4).max(16).required(),
+    password: Joi.string().pattern(/^[a-zA-Z0-9]{6-16}$/),
+    repeat_password: Joi.ref('password'),
+    mobile: Joi.string().pattern(/^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/)
+  })
+
+  const verify = schema.validate({ username, password, mobile})
+  console.log(verify);
+  // 如果校验不通过 则阻止程序运行
+  if (verify.error) {
+    ctx.body = {
+      status: 0,
+      message: verify.error.details[0].message
+    }
+    return;
+  }
+  //#endregion
+  
+  
+  // 操作 user数据模型
+  const result = await register(username, password, mobile);
+  
+  ctx.body = {
+    status: 200,
+    msg: '注册成功',
+  }
+}
+```
+![校验成功](day-08.assets/image-20211021212923984.png)
+
+![校验失败](day-08.assets/image-20211021213549325.png)
 
 
 
+## 
 
-
-## 试试
 
 
