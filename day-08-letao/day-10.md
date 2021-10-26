@@ -137,10 +137,6 @@ yarn add tencentcloud-sdk-nodejs
 全局**！！必须!!**变量配置`.env`
 ```env
 DB_ENV=dev
-secretId="AKIDNejaDcnocCaljT0JOErMdfU7VfbJn35t"
-secretKey="d5KL8h294mGWYN0PaYJq9E5j8JH1Ys23"
-SmsSdkAppId="1400558869"
-TemplateId="1071886"
 ```
 
 
