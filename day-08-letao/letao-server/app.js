@@ -5,6 +5,8 @@ const json = require('koa-json')  // json数据个书画
 const onerror = require('koa-onerror')  // 处理异常
 const bodyparser = require('koa-bodyparser')  // 解析post请求
 const logger = require('koa-logger')  // 记录日志
+const jwt = require('koa-jwt') // 引入koa-jwt
+const { jwtScrite } = require('./config') // 引入jwt加密字符串
 
 // 启动 dotenv
 require('dotenv').config()
@@ -17,6 +19,28 @@ const category = require('./routes/category')
 const sms = require('./routes/sms')
 // error handler
 onerror(app)
+
+//#region  使用koa-jwt中间件 拦截客户端调用服务端接口时 如果没有带token就返回401
+app.use(function (ctx, next) {
+  return next().catch((err) => {
+    if (401 == err.status) {
+      ctx.status = 401;
+      ctx.body = 'Protected resource, use Authorization header to get access\n';
+    } else {
+      throw err;
+    }
+  });
+});
+//#endregion
+
+//#region  设置哪些接口不需要设置token
+/**
+ * secret 必须是token生成时的加密字符串
+ * ubless 排除哪些请求不需要token 登录login与注册register 无需token
+ */
+app.use(jwt({ secret: jwtScrite })
+  .unless({ path: [/^\/public/, /^\/users\/login/, /^\/users\/register/] }));
+//#endregion
 
 // middlewares
 app.use(bodyparser({

@@ -3,8 +3,10 @@ const { register, findUserByUsername, findUserInfo } = require('../model/users')
 const Joi = require('joi')
 //  引入加密方法
 const { cryptoPaddword } = require("../utils")
-// 加密字符串
-const { scrict } = require('../config')
+// 登录加密字符串 jwt加密字符串
+const { scrict, jwtScrite } = require('../config')
+// 引入jwt
+const jwt = require('jsonwebtoken')
 
 // 注册
 module.exports.register = async (ctx) => {
@@ -60,8 +62,15 @@ module.exports.login = async (ctx) => {
   const result = await findUserInfo(username, cryptoPaddword(password, scrict))
   /* 如果有用户信息 */
   if (result[0]) {
+    // 用户登录成功 根据用户名和密码生成Token
+    const token = jwt.sign({
+      data: {username,password}
+    }, jwtScrite, { expiresIn: '1h' });
+
     ctx.body = {
       status: 200,
+      //给客户端返回jwt
+      data:token,
       message: "登录成功"
     }
   } else {
