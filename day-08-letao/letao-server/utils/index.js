@@ -1,3 +1,6 @@
+const { key } = require('../config/wx')
+const axios = require('axios')
+const xml = require('xml2js')
 //#region  加密方法
 // 导入Node内置加密模块
 const crypto = require("crypto")
@@ -104,3 +107,59 @@ function getRandom(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
   //#endregion
+
+
+//#region  微信下单
+module.exports.createOrder =  (url,params) => {
+  return new Promise(async (resolve, reject) => {
+    const data = await axios({
+      url: url,
+      method: 'post',
+      data: params
+    })
+    // console.log(data,'data')
+    // resolve(data)
+    xml.parseString(data.data, (err, data) => {
+      if (err) reject(err)
+      // 结构data 查看返回的数据中是否存在需要的值 用以判断是否成功
+      const { return_code, result_code, return_msg } = data.xml
+      if (return_code == "SUCCESS" && result_code == "SUCCESS" && return_msg == "OK") {
+        resolve(data.xml)
+      } else {
+        reject(data)
+      }
+    })
+  })
+}
+//#endregion
+
+//#region  生成32位以内的随机字符串
+module.exports.getRandomStr = () => {
+  return 'letao' + this.getRandomByLength(10)
+}
+//#endregion
+
+
+//#region  生成32位以内商户订单号
+module.exports.getTrade_no = () => {
+  return 'Trade_no'+ this.getRandomStr()+ this.getRandomByLength(6)
+}
+//#endregion
+
+
+//#region  生成签名算法
+module.exports.createSign = (args) => {
+  // let stringA = '';
+  // 拿到传递过来的对象的键之后 进行Ascii码升序排列 以key=value&key=value的方式拼接
+  // Object.keys(args).sort().forEach(key => {
+  //   stringA += `${key}=${args[key]}&`
+  // })
+  // stringA += `key=${key}`
+  // 使用reduce方法处理字符串
+  const stringA =   Object.keys(args).sort().reduce((prev,next) => {
+    return prev+=`${next}=${args[next]}&`
+  }, "").concat(`key=${key}`)
+  // MD5加密转大写 
+  return crypto.createHash('MD5').update(stringA).digest('hex').toUpperCase();
+}
+//#endregion

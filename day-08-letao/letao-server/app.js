@@ -17,20 +17,23 @@ const users = require('./routes/users')
 const category = require('./routes/category')
 // 发送验证吗
 const sms = require('./routes/sms')
+// 订单微信支付
+const order = require("./routes/order") 
+
 // error handler
 onerror(app)
 
 //#region  使用koa-jwt中间件 拦截客户端调用服务端接口时 如果没有带token就返回401
-app.use(function (ctx, next) {
-  return next().catch((err) => {
-    if (401 == err.status) {
-      ctx.status = 401;
-      ctx.body = 'Protected resource, use Authorization header to get access\n';
-    } else {
-      throw err;
-    }
-  });
-});
+// app.use(function (ctx, next) {
+//   return next().catch((err) => {
+//     if (401 == err.status) {
+//       ctx.status = 401;
+//       ctx.body = 'Protected resource, use Authorization header to get access\n';
+//     } else {
+//       throw err;
+//     }
+//   });
+// });
 //#endregion
 
 //#region  设置哪些接口不需要设置token
@@ -38,8 +41,8 @@ app.use(function (ctx, next) {
  * secret 必须是token生成时的加密字符串
  * ubless 排除哪些请求不需要token 登录login与注册register 无需token
  */
-app.use(jwt({ secret: jwtScrite })
-  .unless({ path: [/^\/public/, /^\/users\/login/, /^\/users\/register/] }));
+// app.use(jwt({ secret: jwtScrite })
+//   .unless({ path: [/^\/public/, /^\/users\/login/, /^\/users\/register/] }));
 //#endregion
 
 // middlewares
@@ -67,7 +70,10 @@ app.use(index.routes(), index.allowedMethods())
 app.use(users.routes(), users.allowedMethods())
 app.use(category.routes(), category.allowedMethods())
 app.use(sms.routes(), sms.allowedMethods())
+app.use(order.routes(), order.allowedMethods())
 
+// const { createSign } = require('./utils')
+// console.log(createSign(),'createSign');
 // error-handling
 app.on('error', (err, ctx) => {
   console.error('server error', err, ctx)
