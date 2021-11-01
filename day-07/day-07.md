@@ -227,7 +227,7 @@ yarn dev 是使用`nodemon` 启动的项目 会在文件修改之后自动重新
 
 ### Koa项目脚手架目录结构
 > 掌握项目初始化所自动创建的文件和文件夹
-```
+```file
 |-- app.js  后端的绝对入口文件 路由、库的挂载都在这里
 |-- package.json
 |-- yarn.lock
@@ -249,6 +249,7 @@ yarn dev 是使用`nodemon` 启动的项目 会在文件修改之后自动重新
 
 ### Koa项目核心文件代码
 `app.js`
+
 ```js
 const Koa = require('koa') // Koa包
 const app = new Koa()  // 创建app服务
