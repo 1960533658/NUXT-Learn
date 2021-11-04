@@ -10,3 +10,6 @@ module.exports.key = 'T6m9iK73b0kn9g5v426MKfHQH7X8rKwb';
 
 // 微信下单后的 微信的回调地址
 module.exports.notify_url = 'http://vips968.com:3001/pay/notify'
+
+// 微信订单查询Url
+module.exports.queryOrderUrl = "https://api.mch.weixin.qq.com/pay/orderquery"

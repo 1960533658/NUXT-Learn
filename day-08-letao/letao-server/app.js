@@ -7,9 +7,11 @@ const bodyparser = require('koa-bodyparser')  // 解析post请求
 const logger = require('koa-logger')  // 记录日志
 const jwt = require('koa-jwt') // 引入koa-jwt
 const { jwtScrite } = require('./config') // 引入jwt加密字符串
+const xmlParser = require('koa-xml-body')
 
 // 启动 dotenv
 require('dotenv').config()
+app.use(xmlParser())
 // 加载路由
 const index = require('./routes/index')
 const users = require('./routes/users')

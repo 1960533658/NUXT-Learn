@@ -1643,6 +1643,14 @@ koa-views@^6.2.0:
     mz "^2.4.0"
     pretty "^2.0.0"
 
+koa-xml-body@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.npm.taobao.org/koa-xml-body/download/koa-xml-body-2.2.0.tgz#593217d09e2fedcc1b34ce71c25df6571e833970"
+  integrity sha1-WTIX0J4v7cwbNM5xwl32Vx6DOXA=
+  dependencies:
+    raw-body "^2.4.1"
+    xml2js "^0.4.23"
+
 koa@^2.7.0:
   version "2.13.3"
   resolved "https://registry.npmmirror.com/koa/download/koa-2.13.3.tgz?cache=0&sync_timestamp=1632468583613&other_urls=https%3A%2F%2Fregistry.npmmirror.com%2Fkoa%2Fdownload%2Fkoa-2.13.3.tgz#a62641ba753ec54bee2c6da1a4f294c5fac35407"
@@ -2293,7 +2301,7 @@ qs@^6.5.2:
   dependencies:
     side-channel "^1.0.4"
 
-raw-body@^2.3.3:
+raw-body@^2.3.3, raw-body@^2.4.1:
   version "2.4.1"
   resolved "https://registry.nlark.com/raw-body/download/raw-body-2.4.1.tgz#30ac82f98bb5ae8c152e67149dac8d55153b168c"
   integrity sha1-MKyC+Yu1rowVLmcUnayNVRU7Fow=

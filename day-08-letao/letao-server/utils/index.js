@@ -163,3 +163,26 @@ module.exports.createSign = (args) => {
   return crypto.createHash('MD5').update(stringA).digest('hex').toUpperCase();
 }
 //#endregion
+
+// 微信订单查询
+module.exports.queryOrder = (url, params) => {
+  return new Promise(async (resolve, reject) => {
+    const data = await axios({
+      url: url,
+      method: 'post',
+      data: params
+    })
+    // console.log(data,'data')
+    // resolve(data)
+    xml.parseString(data.data, (err, data) => {
+      if (err) reject(err)
+      // 结构data 查看返回的数据中是否存在需要的值 用以判断是否成功
+      const { return_code, result_code, return_msg } = data.xml
+      if (return_code == "SUCCESS" && result_code == "SUCCESS" && return_msg == "OK") {
+        resolve(data.xml)
+      } else {
+        reject(data)
+      }
+    })
+  })
+}
